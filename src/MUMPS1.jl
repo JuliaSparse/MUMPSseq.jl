@@ -4,7 +4,8 @@ module MUMPS1
     import Base.zero
 
     export
-         DMumps
+         DMumps,
+         DMumpssv
 
     include("dmumps_h.jl")
     include("DMumps.jl")
