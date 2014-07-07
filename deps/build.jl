@@ -14,6 +14,6 @@ end
     provides( Homebrew.HB, "mumps", dmumps, os = :Darwin )
 end
 
-provides(Sources, URI("http://ftp.debian.org/debian/pool/main/m/mumps/mumps_4.10.0.dfsg.orig.tar.gz"))
+provides(Sources, URI("http://ftp.debian.org/debian/pool/main/m/mumps/mumps_4.10.0.dfsg.orig.tar.gz"), dmumps)
 
 @BinDeps.install [:dmumps => :dmumps]
