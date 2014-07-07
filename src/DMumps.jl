@@ -20,7 +20,7 @@ function DMumps()
     res = DMumps(map(init, DMumps.types)...) # fill type with zeros
     res.par = 1
     res.job = -1
-    ccall((:dmumps_c, dmumps), Void, (Ptr{DMumps},), &res)
+    ccall((:dmumps_c, libdmumps), Void, (Ptr{DMumps},), &res)
     res
 end
 
@@ -55,7 +55,7 @@ function DMumpssv(A::SparseMatrixCSC,determinant::Bool)
     dm.sym = issym(A)              # attempt pos. def. before general symmetric
     dm.job = 4
     dm.n = A.n
-    dm.nz = nfilled(A)
+    dm.nz = nnz(A)
     tt = findnz(A)
     irn = tt[1]
     eltype(irn) == Cint || (irn = int32(irn)) 
@@ -66,15 +66,26 @@ function DMumpssv(A::SparseMatrixCSC,determinant::Bool)
     a = tt[3]
     eltype(a) == Cdouble || (a =float64(a))
     dm.a = pointer(a)
-    ccall((:dmumps_c,dmumps),Void,(Ptr{DMumps},),&dm)
+    ccall((:dmumps_c,libdmumps),Void,(Ptr{DMumps},),&dm)
     dm.info.Info == 0 || error("dmumps_c returned error code $(dm.info.Info)")
     res = DMumpssv(dm,irn,jcn,a)
     finalizer(res, dmumpssv_free)
     res
 end
 
+function Base.A_ldiv_B!(m::DMumpssv,B::VecOrMat{Float64})
+    dm = m.dm
+    dm.job = 3                          # solve (assuming analyze/factorize has been done)
+    dm.lrhs = size(B,1)
+    dm.nrhs = size(B,2)
+    dm.rhs = pointer(B)
+    ccall((:dmumps_c,libdmumps),Void,(Ptr{DMumps},),&dm)
+    dm.info.Info == 0 || error("dmumps_c returned error code $(dm.info.Info)")
+    B
+end
+
 dmumpssv_free(dms::DMumpssv) = dmumps_free(dms.dm)
-dmumps_free(dm::DMumps) = (dm.job = -2; ccall((:dmumps_c,dmumps),Void,(Ptr{DMumps},),&dm))
+dmumps_free(dm::DMumps) = (dm.job = -2; ccall((:dmumps_c,libdmumps),Void,(Ptr{DMumps},),&dm))
 
 DMumpssv(A::SparseMatrixCSC) = DMumpssv(A,false)
 
@@ -89,7 +100,7 @@ function Base.A_ldiv_B!(A::SparseMatrixCSC{Float64},B::Vector{Float64})
     dm.sym = issym(A)              # attempt pos. def. before general symmetric
     dm.job = 6
     dm.n = n
-    dm.nz = nfilled(A)
+    dm.nz = nnz(A)
     tt = findnz(A)
     irn = tt[1]
     eltype(irn) == Cint || (irn = int32(irn)) 
@@ -98,19 +109,18 @@ function Base.A_ldiv_B!(A::SparseMatrixCSC{Float64},B::Vector{Float64})
     eltype(jcn) == Cint || (jcn = int32(jcn)) 
     dm.jcn = pointer(jcn)
     a = tt[3]
-#    eltype(a) == Cdouble || (a =float64(a))
     dm.a = pointer(a)
-#    bcp = copy(b)
     dm.rhs = pointer(B)
     dm.nrhs = 1
     dm.lrhs = n
-    ccall((:dmumps_c,dmumps),Void,(Ptr{DMumps},),&dm)
+    ccall((:dmumps_c,libdmumps),Void,(Ptr{DMumps},),&dm)
     dm.info.Info == 0 || error("dmumps_c returned error code $(dm.info.Info)")
     dm.job = -2
-    ccall((:dmumps_c,dmumps),Void,(Ptr{DMumps},),&dm)
+    ccall((:dmumps_c,libdmumps),Void,(Ptr{DMumps},),&dm)
     B
 end
 
+## FIXME: This doesn't work as intended if a diagonal element of A is a systematic zero
 function dinflate(A::SparseMatrixCSC, v::Real) # inflate the diagonal of A by v
     v = convert(eltype(A),v)
     colpt = A.colptr

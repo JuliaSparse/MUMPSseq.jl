@@ -1,7 +1,5 @@
-module MUMPS1
+module MUMPSseq
     include("../deps/deps.jl")
-
-    import Base.zero
 
     export
          DMumps,

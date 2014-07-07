@@ -14,4 +14,4 @@ before_install:
   - sudo apt-get install libpcre3-dev julia -y
   - sudo apt-get install libmumps-seq-dev -y
 script:
-  - julia -e 'Pkg.init(); Pkg.clone(pwd()); Pkg.test("MUMPS1")'
+  - julia -e 'Pkg.init(); Pkg.clone(pwd()); Pkg.test("MUMPSseq")'
