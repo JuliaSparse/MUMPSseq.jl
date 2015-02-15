@@ -2,11 +2,16 @@ using BinDeps
 
 @BinDeps.setup
 
-libdmumps_seq = library_dependency("libdmumps_seq")
+libdmumps_seq = library_dependency("libdmumps_seq", aliases=["libdmumps"])
 
 @linux_only begin
     provides(AptGet, "libmumps-seq-dev", libdmumps_seq)
 #    provides(Yum, "MUMPS-4.10.0", libdmumps)
+end
+
+@windows_only begin
+    using WinRPM
+    provides(WinRPM.RPM, "mumps", libdmumps_seq, os = :Windows)
 end
 
 ## @osx_only begin
